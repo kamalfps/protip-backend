@@ -1,0 +1,76 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Tenant Workspace (Each unique streamer setup)
+model Tenant {
+  id           String   @id @default(uuid())
+  slug         String   @unique
+  displayName  String
+  customDomain String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users        User[]
+  streams      Stream[]
+  payouts      Payout[]
+}
+
+// 2. Users (Streamers, Admins, or Moderators)
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(STREAMER)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+// 3. Live Stream Sessions
+model Stream {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  status      StreamStatus @default(OFFLINE)
+  viewerCount Int          @default(0)
+  streamKey   String       @unique
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([tenantId])
+}
+
+// 4. Financial Logs / Tips
+model Payout {
+  id        String   @id @default(uuid())
+  amount    Float
+  currency  String   @default("USD")
+  status    String
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+enum Role {
+  SUPERADMIN
+  STREAMER
+  MODERATOR
+}
+
+enum StreamStatus {
+  LIVE
+  OFFLINE
+  PAUSED
+}
