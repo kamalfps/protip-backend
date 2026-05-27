@@ -63,9 +63,9 @@ app.post('/api/auth/register', async (req, res) => {
         password: hashedPassword,
         widgetSettings: {
           create: {
-            image: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Y0cm83bXNidm56bms1dms3bHh3amFub2t3Y3Y0eXg0Y3I4dzZyeCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/8g6F96C1Hwff2/giphy.gif',
-            sound: 'https://assets.mixkit.co/active_storage/sfx/911/911-128.mp3',
-            duration: 6000,
+            alertImage: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Y0cm83bXNidm56bms1dms3bHh3amFub2t3Y3Y0eXg0Y3I4dzZyeCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/8g6F96C1Hwff2/giphy.gif',
+            alertSound: 'https://assets.mixkit.co/active_storage/sfx/911/911-128.mp3',
+            alertDuration: 6000,
             textColor: '#a855f7'
           }
         }
@@ -124,9 +124,9 @@ app.post('/api/tip', async (req, res) => {
         donorName,
         amount,
         message,
-        image: streamer.widgetSettings.image,
-        sound: streamer.widgetSettings.sound,
-        duration: streamer.widgetSettings.duration,
+        image: streamer.widgetSettings.alertImage || '',
+        sound: streamer.widgetSettings.alertSound || '',
+        duration: streamer.widgetSettings.alertDuration,
         textColor: streamer.widgetSettings.textColor
       });
     }
@@ -162,14 +162,14 @@ app.get('/api/dashboard/stats', requireAuth, async (req: AuthenticatedRequest, r
 
 app.post('/api/dashboard/settings', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    const { image, sound, duration, textColor } = req.body;
+    const { alertImage, alertSound, alertDuration, textColor } = req.body;
 
     const updated = await prisma.widgetSettings.update({
       where: { userId: req.userId },
       data: {
-        image,
-        sound,
-        duration: parseInt(duration),
+        alertImage,
+        alertSound,
+        alertDuration: parseInt(alertDuration),
         textColor
       }
     });
