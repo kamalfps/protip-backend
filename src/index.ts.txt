@@ -1,0 +1,53 @@
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
+import streamRouter from './streamRoutes.js';
+
+// Load environment variables
+dotenv.config();
+
+const app = express();
+const prisma = new PrismaClient();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true
+}));
+app.use(express.json());
+
+// Multi-Tenant Business Routes
+app.use('/api/streams', streamRouter);
+
+// Base health check route for Render monitoring
+app.get('/', (req: Request, res: Response) => {
+  res.json({ 
+    status: 'online', 
+    message: 'ProTip.live Multi-Tenant API is running smoothly' 
+  });
+});
+
+// Database connectivity check route
+app.get('/api/health', async (req: Request, res: Response) => {
+  try {
+    // Quick query to verify database connection
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ database: 'connected', timestamp: new Date() });
+  } catch (error) {
+    res.status(500).json({ database: 'disconnected', error: String(error) });
+  }
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`[server]: ProTip.live API is executing on port ${PORT}`);
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', async () => {
+  console.log('[server]: SIGTERM signal received. Closing Prisma client...');
+  await prisma.$disconnect();
+  process.exit(0);
+});
