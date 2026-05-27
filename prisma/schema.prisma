@@ -1,76 +1,53 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+provider = "postgresql"
+url      = env("DATABASE_URL")
 }
 
 generator client {
-  provider = "prisma-client-js"
+provider = "prisma-client-js"
 }
 
-// 1. Tenant Workspace (Each unique streamer setup)
-model Tenant {
-  id           String   @id @default(uuid())
-  slug         String   @unique
-  displayName  String
-  customDomain String?  @unique
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  users        User[]
-  streams      Stream[]
-  payouts      Payout[]
-}
-
-// 2. Users (Streamers, Admins, or Moderators)
+// 1. The Streamer Account
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(STREAMER)
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+id        String   @id @default(uuid())
+username  String   @unique // Used for their tipping page URL and OBS link
+email     String   @unique
+password  String
+createdAt DateTime @default(now())
 
-  @@index([tenantId])
+// Relations
+donations      Donation[]
+widgetSettings WidgetSettings?
 }
 
-// 3. Live Stream Sessions
-model Stream {
-  id          String       @id @default(uuid())
-  title       String
-  description String?
-  status      StreamStatus @default(OFFLINE)
-  viewerCount Int          @default(0)
-  streamKey   String       @unique
-  tenantId    String
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+// 2. OBS Widget Configuration (How the alert looks on stream)
+model WidgetSettings {
+id             String  @id @default(uuid())
+userId         String  @unique
+user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
+// Customization for the OBS Browser Source
+alertImage     String? @default("https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif") // Default GIF
+alertSound     String? @default("default-chime.mp3")
+alertDuration  Int     @default(5000) // How long it stays on screen in milliseconds
+minDonation    Float   @default(1.00) // Minimum tip to trigger an alert
+textColor      String  @default("#ffffff")
+
+createdAt      DateTime @default(now())
+updatedAt      DateTime @updatedAt
 }
 
-// 4. Financial Logs / Tips
-model Payout {
-  id        String   @id @default(uuid())
-  amount    Float
-  currency  String   @default("USD")
-  status    String
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+// 3. The Tips/Donations received from viewers
+model Donation {
+id        String   @id @default(uuid())
+userId    String   // The streamer receiving the tip
+user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
-}
+donorName String   @default("Anonymous")
+amount    Float
+message   String?  // The text that will be read out/displayed on the OBS alert
 
-enum Role {
-  SUPERADMIN
-  STREAMER
-  MODERATOR
-}
+createdAt DateTime @default(now())
 
-enum StreamStatus {
-  LIVE
-  OFFLINE
-  PAUSED
+@@index([userId])
 }
