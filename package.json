@@ -23,4 +23,7 @@
     "tsx": "^4.11.0",
     "typescript": "^5.4.5"
   }
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
 }
